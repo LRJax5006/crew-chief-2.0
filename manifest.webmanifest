@@ -1,0 +1,30 @@
+{
+  "name": "Crew Chief by Archaeolab",
+  "short_name": "Crew Chief",
+  "description": "Record archaeology STPs, strata, crew members, GPS coordinates, and exports in a field-ready progressive web app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f6f2",
+  "theme_color": "#b21e1e",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

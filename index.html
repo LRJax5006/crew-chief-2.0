@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#b21e1e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Crew Chief">
+    <title>Crew Chief by Archaeolab</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png?v=20260319" type="image/png">
+    <link rel="shortcut icon" href="icons/icon-192.png?v=20260319" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260319">
+    <link rel="stylesheet" href="app.css">
+    <!-- Google Identity Services script for Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Google Drive API client for Drive integration -->
+    <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+    <div id="loginBar" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <button id="loginUiButton" class="ghost-button">Sign in</button>
+        <span id="userUiLabel" class="user-label" style="color: #fff; font-size: 1em;">Not signed in</span>
+    </div>
+    <div id="activeStpBar" class="active-stp-bar">
+        <div class="active-stp-bar-left">
+            <span id="activeStpSiteName" class="active-stp-site" hidden></span>
+            <span class="active-stp-sep" id="activeStpSep" aria-hidden="true" hidden> › </span>
+            <strong id="activeStpLbl" class="active-stp-lbl">New STP</strong>
+            <span id="activeStpStratumCount" class="active-stp-strata"></span>
+        </div>
+        <div class="active-stp-bar-right">
+            <span id="stickySyncIndicator" class="sticky-sync-indicator" title="Cloud Sync Status">⭮</span>
+            <span id="activeStpSaveIndicator" class="active-stp-dot" title="Session saved"></span>
+            <span id="activeStpSaveText" class="active-stp-save-text" aria-live="polite">Saved</span>
+            <button type="button" id="topSaveStpButton" class="active-stp-btn">Save STP</button>
+            <button type="button" id="topNewStpButton" class="active-stp-btn">New STP</button>
+            <button type="button" id="topNewStratumButton" class="active-stp-btn">New Stratum</button>
+            <button type="button" id="activeStpPhotoButton" class="active-stp-btn" title="Take STP photo for current stratum">STP Photo <span class="photo-chip" hidden></span></button>
+            <button type="button" id="activeReferencePhotoButton" class="active-stp-btn" title="Choose reference photo">Reference Photo <span class="photo-chip" hidden></span></button>
+            <button type="button" id="jumpToFormButton" class="active-stp-btn">&#8595; Entry Form</button>
+        </div>
+    </div>
+    <div class="page-shell">
+        <div id="pwaInstallBanner" class="pwa-install-banner" hidden>
+            <div class="pwa-install-content">
+                <span class="pwa-install-text">Install Crew Chief on your device for offline use</span>
+            </div>
+            <div class="pwa-install-actions">
+                <button type="button" id="pwaInstallButton" class="pwa-install-button">Install App</button>
+                <button type="button" id="pwaInstallDismiss" class="pwa-install-dismiss" aria-label="Dismiss">&#x2715;</button>
+            </div>
+            <p id="pwaIosInstructions" class="pwa-ios-instructions" hidden>
+                Tap the Share button (&uarr;) then &ldquo;Add to Home Screen&rdquo;
+            </p>
+        </div>
+        <div class="project-banner" id="projectBanner">
+            <img id="projectBannerImg" class="project-banner-img" alt="Project image" hidden>
+            <div id="projectBannerEmpty" class="project-banner-empty">
+                <p>Add a project map image for on-site reference.</p>
+            </div>
+            <div class="project-banner-overlay">
+                <div class="project-banner-actions">
+                    <label class="project-banner-upload-btn">
+                        Upload Map Image
+                        <input type="file" id="projectImageInput" accept="image/*">
+                    </label>
+                    <button type="button" id="openProjectImageButton" class="primary-button" hidden>View Map Full Screen</button>
+                    <button type="button" id="removeProjectImageButton" class="ghost-button" hidden>Remove</button>
+                </div>
+            </div>
+        </div>
+        <div class="project-banner-meta" aria-live="polite">
+            <p class="project-banner-help">Accepted image files with automatic optimization to a 4 MB target.</p>
+            <p id="projectImageMessage" class="project-banner-message" aria-live="polite"></p>
+        </div>
+
+        <header class="hero">
+            <div class="hero-flex-row">
+                <div class="hero-title-panel">
+                    <p class="eyebrow">by Archaeolab</p>
+                    <div class="title-logo-stack" aria-label="Crew Chief by Archaeolab">
+                        <img class="title-logo-mark" src="Archaeolab_logo.jpg" alt="" aria-hidden="true">
+                        <h1>Crew Chief</h1>
+                    </div>
+                    <p class="intro">
+                        Record site information once, then enter as many shovel test pits and strata as you need.
+                        STP labels remain editable, even when a label suggestion is offered.
+                    </p>
+                </div>
+                <div class="sync-status-card" id="syncStatusCard">
+                    <p class="sync-status-label">Cloud Sync</p>
+                    <div id="syncStatusBar" class="sync-status-bar" aria-live="polite">
+                        <span id="syncStatusText">Not connected</span>
+                        <span id="syncStatusIndicator" class="sync-status-indicator red"></span>
+                    </div>
+                    <div class="sync-status-actions">
+                        <button type="button" id="viewBackupsButton" class="ghost-button sync-action-btn">View Backups</button>
+                        <button type="button" id="syncSettingsButton" class="ghost-button sync-action-btn">Settings</button>
+                        <button type="button" id="manualSyncButton" class="ghost-button sync-action-btn">Sync Now</button>
+                    </div>
+                    <p id="lastSyncTime" class="sync-last-time"></p>
+                </div>
+                <div class="hero-card">
+                    <p class="hero-card-label">Current Session</p>
+                    <p id="sessionStatus" class="session-status">0 STPs saved</p>
+                    <div class="hero-card-buttons">
+                        <button type="button" id="saveProjectButton" class="secondary-button">Save Project &amp; Start New</button>
+                        <button type="button" id="clearSessionButton" class="ghost-button">Clear Session</button>
+                        <button type="button" id="highContrastToggle" class="ghost-button contrast-toggle" aria-pressed="false">High Contrast: Off</button>
+                        <button type="button" id="importQualityToggle" class="ghost-button contrast-toggle" aria-pressed="true">Import Quality: Sharp</button>
+                    </div>
+                    <p id="dataSafetyStatus" class="session-storage-status" aria-live="polite"></p>
+                    <p id="imageStorageStatus" class="session-storage-status" aria-live="polite"></p>
+                </div>
+            </div>
+        </header>
+
+        <div id="flowNavigator" class="panel flow-navigator" aria-label="Workflow navigation">
+            <div class="flow-navigator-head">
+                <p class="flow-navigator-title">Workflow Navigator</p>
+                <div class="flow-navigator-toggles">
+                    <button type="button" id="fieldModeToggleButton" class="ghost-button flow-nav-toggle" aria-pressed="true">Field Mode: On</button>
+                </div>
+            </div>
+            <div class="flow-navigator-controls">
+                <button type="button" id="flowPrevButton" class="ghost-button">&#8592; Previous</button>
+                <label class="flow-nav-select-field" for="flowStepSelect">
+                    <span>Go To Section</span>
+                    <select id="flowStepSelect" aria-label="Choose workflow section"></select>
+                </label>
+                <button type="button" id="flowNextButton" class="secondary-button">Next &#8594;</button>
+            </div>
+            <div id="flowProgressRail" class="flow-progress-rail" role="list"></div>
+            <p id="flowStepStatus" class="flow-step-status" aria-live="polite"></p>
+        </div>
+
+        <section id="projectDashboard" class="project-dashboard" aria-labelledby="projectDashboardTitle">
+            <div class="dashboard-heading">
+                <div>
+                    <p class="eyebrow">Field archive</p>
+                    <h2 id="projectDashboardTitle">Choose your field session</h2>
+                    <p>Open saved site work or begin a new record. Your current session stays on this device until you save or export it.</p>
+                </div>
+                <div class="dashboard-actions">
+                    <button type="button" id="continueSessionButton" class="primary-button">Continue Current Session</button>
+                    <button type="button" id="newFieldSessionButton" class="secondary-button">Start New Field Session</button>
+                </div>
+            </div>
+
+            <section class="panel project-library-panel" aria-labelledby="projectLibraryTitle">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Saved work</p>
+                        <h2 id="projectLibraryTitle">Projects <span id="projectsHeaderCount" class="section-count" aria-live="polite"></span></h2>
+                    </div>
+                    <div class="project-library-filters">
+                        <label class="filter-field" for="projectSearchInput">
+                            <span>Search</span>
+                            <input type="search" id="projectSearchInput" placeholder="Site, location, or project">
+                        </label>
+                        <label class="filter-field filter-field-compact" for="projectSortSelect">
+                            <span>Sort</span>
+                            <select id="projectSortSelect">
+                                <option value="newest">Newest</option>
+                                <option value="oldest">Oldest</option>
+                                <option value="az">A-Z</option>
+                            </select>
+                        </label>
+                        <button type="button" id="clearProjectFiltersButton" class="ghost-button filter-clear-button" hidden>Clear Filters</button>
+                    </div>
+                </div>
+                <p id="projectsFilterSummary" class="filter-summary" aria-live="polite"></p>
+                <div id="projectsEmptyState" class="empty-state">No saved projects yet.</div>
+                <div id="projectsList" class="projects-list"></div>
+            </section>
+        </section>
+
+        <main id="fieldWorkspace" class="workspace">
+
+            <form id="entryForm">
+                <div class="entry-layout">
+                    <section class="panel" data-flow-step="site" data-flow-label="Site Details">
+                        <div class="section-head">
+                            <div>
+                                <h2>Site Details</h2>
+                                <p>Set the site name, location, crew, and depth measurement once. STP data is entered in the next section.</p>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Site Name</span>
+                                <input type="text" id="siteName" name="siteName" placeholder="ex: Johnson Farm Site" required>
+                            </label>
+
+                            <label class="field">
+                                <span>Site Location</span>
+                                <input type="text" id="siteLocation" name="siteLocation" placeholder="County, parcel, or project area" required>
+                            </label>
+
+                            <label class="field field-wide">
+                                <span>Crew Members</span>
+                                <textarea id="crewMembers" name="crewMembers" rows="2" placeholder="Comma-separated names or one per line"></textarea>
+                                <p class="field-help">Remembered for the next site until you change it.</p>
+                            </label>
+
+                            <label class="field">
+                                <span>Depth Measurement</span>
+                                <select id="depthUnit" name="depthUnit">
+                                    <option value="engineering-feet" selected>Engineering Feet</option>
+                                    <option value="metric">Metric</option>
+                                    <option value="standard">Standard</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <p class="mapping-note">
+                            Excel-ready export starts with the STPs sheet column order:
+                            <strong>Sup, Transect, Unit, STP, Stratum, Depth, Munsell, Texture, Horizon, Notes/Inclusions</strong>.
+                        </p>
+                    </section>
+
+                    <aside class="panel entry-photo-panel" aria-label="Field reference photo" data-flow-step="site" data-flow-label="Site Details">
+                        <div class="entry-photo-media">
+                            <img id="referencePhotoImg" class="entry-photo-img" src="IMG_3376.JPG" alt="Reference photo beside the STP data entry area" loading="lazy">
+                            <div id="referencePhotoEmpty" class="entry-photo-empty" hidden>
+                                <p>Open a recent photo or choose one from your storage.</p>
+                            </div>
+                        </div>
+                        <div class="entry-photo-copy">
+                            <p class="eyebrow">Field Reference</p>
+                            <h2>Reference Photo</h2>
+                            <p>Keep a field image visible while entering site details, strata descriptions, and notes.</p>
+                            <div class="entry-photo-actions">
+                                <button type="button" id="openReferencePhotoButton" class="secondary-button">Open Reference Photo</button>
+                                <button type="button" id="closeReferencePhotoPreviewButton" class="ghost-button" hidden>Close Preview</button>
+                                <button type="button" id="clearReferencePhotoButton" class="ghost-button" hidden>Clear</button>
+                            </div>
+                            <input type="file" id="referencePhotoInput" accept="image/*" hidden>
+                            <p id="referencePhotoMessage" class="entry-photo-message" aria-live="polite"></p>
+                            <p id="referencePhotoSavedHint" class="entry-photo-saved-hint" hidden>Saved with session and project.</p>
+                            <details id="referencePhotoLibrary" class="entry-photo-library">
+                                <summary id="referencePhotoLibrarySummary">STP Photos In App</summary>
+                                <p class="entry-photo-library-note">Draft photos stay in app memory until Save STP. Saved STP photos are kept in app photo storage and can be previewed here.</p>
+                                <div id="referencePhotoLibraryList" class="entry-photo-library-list"></div>
+                            </details>
+                        </div>
+                    </aside>
+                </div>
+
+                <section class="panel" data-flow-step="strata" data-flow-label="STP Data &amp; Strata">
+                    <div class="section-head">
+                        <div>
+                            <h2>STP Data &amp; Strata</h2>
+                            <p>Update the current STP or Unit details here, then add one card for each stratum.</p>
+                        </div>
+
+                    </div>
+
+                    <article class="stratum-card stp-data-card">
+                        <div class="stratum-card-head">
+                            <div>
+                                <p class="stratum-kicker">Current Entry</p>
+                                <h3 class="stratum-title">STP Data</h3>
+                            </div>
+                        </div>
+
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>STP Entry Type</span>
+                                <select id="stpEntryType" name="stpEntryType">
+                                    <option value="base">Base STP</option>
+                                    <option value="supplemental">Supplemental STP</option>
+                                    <option value="unit-id">Unit</option>
+                                </select>
+                            </label>
+
+                            <div class="field" id="unitSizeField" hidden>
+                                <span>Unit Size</span>
+                                <select id="unitSizePreset" name="unitSizePreset" disabled>
+                                    <option value="">Select unit size</option>
+                                    <option value="2x2">2x2</option>
+                                    <option value="3x3">3x3</option>
+                                    <option value="4x4">4x4</option>
+                                    <option value="custom">Manual entry</option>
+                                </select>
+                                <div id="unitSizeCustomField" class="conditional-field" hidden>
+                                    <label for="unitSizeCustom">Manual Unit Size</label>
+                                    <input type="text" id="unitSizeCustom" name="unitSizeCustom" placeholder="ex: 5x5" disabled>
+                                </div>
+                                <p class="field-help">Choose a standard size or enter one manually.</p>
+                            </div>
+
+                            <label class="field">
+                                <span>Parent Base STP</span>
+                                <select id="parentStp" name="parentStp" disabled>
+                                    <option value="">Select base STP</option>
+                                </select>
+                            </label>
+
+                            <div class="field stp-label-field gps-field">
+                                <span>STP / Unit GPS Coordinate</span>
+                                <div class="gps-inline">
+                                    <label class="field">
+                                        <span>Latitude</span>
+                                        <input type="number" id="gpsLatitude" name="gpsLatitude" step="any" min="-90" max="90" placeholder="38.98765">
+                                    </label>
+
+                                    <label class="field">
+                                        <span>Longitude</span>
+                                        <input type="number" id="gpsLongitude" name="gpsLongitude" step="any" min="-180" max="180" placeholder="-76.94567">
+                                    </label>
+                                </div>
+                                <div class="gps-actions">
+                                    <div class="gps-actions-buttons">
+                                        <button type="button" id="useCurrentGpsButton" class="secondary-button">Use Phone GPS</button>
+                                        <button type="button" id="viewGpsMapButton" class="ghost-button">View GPS Points Map</button>
+                                    </div>
+                                    <p id="gpsStatusMessage" class="gps-status" aria-live="polite"></p>
+                                </div>
+                            </div>
+
+                            <div class="field stp-label-field">
+                                <label for="stpLabel">Current STP / Unit Label</label>
+                                <div class="inline-field">
+                                    <input type="text" id="stpLabel" name="stpLabel" placeholder="A1" required>
+                                    <button type="button" id="suggestLabelButton" class="secondary-button">Suggest Next</button>
+                                </div>
+                                <div class="inline-photo-actions" aria-label="Quick photo actions">
+                                    <button type="button" id="quickStratumPhotoButton" class="ghost-button quick-photo-button">Current Stratum Photo <span class="photo-chip" hidden></span></button>
+                                    <button type="button" id="quickReferencePhotoButton" class="ghost-button quick-photo-button">Reference Photo <span class="photo-chip" hidden></span></button>
+                                </div>
+
+                                <label class="field">
+                                    <span>Supplemental Direction (Sup)</span>
+                                    <select id="supDirection" name="supDirection">
+                                        <option value="">None (Base STP)</option>
+                                        <option value="N">North (N)</option>
+                                        <option value="S">South (S)</option>
+                                        <option value="E">East (E)</option>
+                                        <option value="W">West (W)</option>
+                                    </select>
+                                </label>
+
+                                <p class="help-text">Typical examples are A1, A2, A3, B1, B2, B3. For supplemental tests, choose Supplemental STP, pick a parent base STP, and set Sup to N, S, E, or W. Use Unit for unit-based identifiers.</p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div id="strataList" class="strata-list"></div>
+                </section>
+
+                <div class="form-actions" data-flow-step="strata" data-flow-label="STP Data &amp; Strata">
+                    <button type="button" id="resetCurrentButton" class="ghost-button">Reset Current STP</button>
+                </div>
+            </form>
+
+            <section class="panel saved-panel" data-flow-step="saved" data-flow-label="Saved STPs">
+                <div class="section-head">
+                    <div>
+                        <h2>Saved STPs <span id="savedStpHeaderCount" class="section-count" aria-live="polite"></span></h2>
+                        <p>Review data and export the current session when needed.</p>
+                    </div>
+
+                    <div class="saved-tools" aria-label="Saved STP file tools">
+                        <div class="saved-tool-group">
+                            <h3>Import</h3>
+                            <div class="saved-tool-grid">
+                                <button type="button" id="importCsvButton" class="ghost-button">CSV Backup</button>
+                                <button type="button" id="importJsonButton" class="ghost-button">JSON Backup + Photos</button>
+                            </div>
+                        </div>
+                        <div class="saved-tool-group">
+                            <h3>Download</h3>
+                            <div class="saved-tool-grid">
+                                <button type="button" id="exportXlsxButton" class="secondary-button">Excel-ready XLSX</button>
+                                <button type="button" id="exportCsvButton" class="ghost-button">Final CSV</button>
+                                <button type="button" id="exportJsonButton" class="ghost-button">JSON Backup + Photos</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="backup-destination-row">
+                    <p id="backupDestinationStatus" class="backup-destination-status" aria-live="polite">App backup file not set yet.</p>
+                    <button type="button" id="setBackupFileButton" class="ghost-button">Set App Backup File</button>
+                </div>
+                <div class="panel-filters panel-filters-saved">
+                    <label class="filter-field">
+                        <span>Search Saved STPs</span>
+                        <input type="search" id="savedStpSearchInput" placeholder="Search by STP label, site, or location" aria-label="Search saved STPs">
+                        <p class="filter-hint">Press Esc to clear search.</p>
+                    </label>
+
+                    <label class="filter-field filter-field-compact">
+                        <span>Entry Type</span>
+                        <select id="savedStpTypeFilter" aria-label="Filter saved STPs by entry type">
+                            <option value="all">All</option>
+                            <option value="base">Base STP</option>
+                            <option value="supplemental">Supplemental STP</option>
+                            <option value="unit-id">Unit</option>
+                        </select>
+                    </label>
+
+                    <label class="filter-field filter-field-compact">
+                        <span>Sort</span>
+                        <select id="savedStpSortSelect" aria-label="Sort saved STPs">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="az">A-Z</option>
+                        </select>
+                    </label>
+
+                    <div class="filter-actions">
+                        <button type="button" id="clearSavedStpFiltersButton" class="ghost-button filter-clear-button" hidden>Clear Filters</button>
+                    </div>
+                </div>
+                <p id="savedStpFilterSummary" class="filter-summary" aria-live="polite"></p>
+                <input type="file" id="importCsvInput" accept=".csv,text/csv" hidden>
+                <input type="file" id="importJsonInput" accept=".json,application/json,text/plain" hidden>
+                <input type="file" id="importShpInput" accept=".zip,.shp,.dbf,.shx,.cpg,.prj,application/octet-stream" multiple hidden>
+                <input type="file" id="importGeojsonInput" accept=".geojson,application/geo+json,application/json,.json" hidden>
+
+                <div id="savedEmptyState" class="empty-state">No STPs saved yet.</div>
+                <div id="savedStpList" class="saved-stp-list"></div>
+            </section>
+
+            <section class="panel mapping-panel" data-flow-step="mapping" data-flow-label="Mapping">
+                <div class="section-head">
+                    <div>
+                        <h2>Mapping</h2>
+                        <p>Import GPS points or a parcel boundary, then generate and manage an STP grid.</p>
+                    </div>
+                </div>
+                <div class="saved-tools mapping-tools" aria-label="Mapping tools">
+                    <div class="saved-tool-group">
+                        <h3>Import</h3>
+                        <div class="saved-tool-grid">
+                            <button type="button" id="importGpsPointsButton" class="ghost-button">GPS Points</button>
+                            <button type="button" id="importShpButton" class="ghost-button">Parcel Boundary (.shp)</button>
+                            <button type="button" id="importGeojsonButton" class="ghost-button">Parcel GeoJSON</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="shpGridControls" class="parcel-grid-controls" hidden>
+                    <label>Setback (ft): <input type="number" id="setbackInput" value="10" min="0" step="1"></label>
+                    <label>Grid Spacing (ft): <input type="number" id="spacingInput" value="50" min="1" step="1"></label>
+                    <label>Start Corner:
+                        <select id="startCornerInput"></select>
+                    </label>
+                    <label>End Corner:
+                        <select id="endCornerInput"></select>
+                    </label>
+                    <button type="button" id="generateGridButton" class="secondary-button">Generate STP Grid</button>
+                    <button type="button" id="clearGridButton" class="ghost-button">Clear Grid Points</button>
+                        <button type="button" id="clearAllStpButton" class="ghost-button">Clear GPS Points</button>
+                </div>
+                <div class="mapping-page-actions">
+                    <button type="button" class="secondary-button" data-flow-step-target="saved">Back to Saved STPs</button>
+                    <button type="button" class="primary-button" data-flow-step-target="wrap">Next Step</button>
+                </div>
+            </section>
+
+            <section class="panel wrap-up-panel" id="wrapUpPanel" hidden data-flow-step="wrap" data-flow-label="Wrap Up">
+                <div class="section-head">
+                    <div>
+                        <h2>Wrap Up Session</h2>
+                        <p>Session summary &mdash; export when ready to close out or hand off data.</p>
+                    </div>
+                </div>
+                <p id="wrapUpSummaryText" class="wrap-up-summary-text"></p>
+                <div class="wrap-up-actions">
+                    <button type="button" id="wrapUpXlsxButton" class="primary-button">&#8595;&nbsp;Download Excel XLSX</button>
+                    <button type="button" id="wrapUpCsvButton" class="secondary-button">&#8595;&nbsp;Final CSV Backup</button>
+                    <button type="button" id="wrapUpJsonButton" class="ghost-button">&#8595;&nbsp;JSON Backup + Photos</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Geospatial libraries for SHP import and grid generation -->
+    <script src="vendor/shp.min.js"></script>
+    <script src="vendor/turf.min.js"></script>
+
+    <template id="stratumTemplate">
+        <article class="stratum-card">
+            <div class="stratum-card-head">
+                <div>
+                    <p class="stratum-kicker" data-stratum-kicker>STP</p>
+                    <h3 class="stratum-title">Stratum <span data-row-number></span> <span class="stratum-entry-label" data-stratum-entry-label></span></h3>
+                </div>
+                <button type="button" class="link-button" data-remove-stratum>Remove</button>
+            </div>
+
+            <div class="stratum-suggestions" data-last-stp-suggestions hidden>
+                <p class="stratum-suggestions-copy" data-last-stp-suggestions-copy></p>
+                <div class="stratum-suggestion-list" data-last-stp-suggestion-list></div>
+            </div>
+
+            <div class="stratum-grid">
+                <label class="field">
+                    <span>Stratum Label</span>
+                    <input type="number" min="1" step="1" data-field="stratumLabel" required>
+                </label>
+
+                <label class="field">
+                    <span>Depth</span>
+                    <input type="text" data-field="depth" placeholder="1.00 ft" required>
+                </label>
+
+                <label class="field">
+                    <span>Munsell</span>
+                    <input type="text" data-field="munsell" list="munsellOptions" placeholder="10YR3/3" required>
+                </label>
+
+                <label class="field">
+                    <span>Soil Type</span>
+                    <input type="text" data-field="soilType" list="textureOptions" placeholder="Silty clay loam" required>
+                </label>
+
+                <label class="field">
+                    <span>Horizon</span>
+                    <input type="text" data-field="horizon" list="horizonOptions" placeholder="Ap, Bt, C" required>
+                </label>
+
+                <label class="field">
+                    <span>Artifact Catalog</span>
+                    <input type="text" data-field="artifactCatalog" placeholder="Bag/Catalog IDs for this stratum">
+                </label>
+
+                <label class="field">
+                    <span>Artifact Summary</span>
+                    <input type="text" data-field="artifactSummary" placeholder="Ceramic, glass, metal, lithics, etc.">
+                </label>
+
+                <div class="field">
+                    <span>Next Step</span>
+                    <div class="stratum-action-buttons" aria-label="Stratum actions">
+                        <button type="button" class="secondary-button photo-capture-button" data-photo-capture>Open Camera</button>
+                        <button type="button" class="secondary-button" data-add-stratum>Add Stratum</button>
+                        <button type="button" class="primary-button" data-save-stp>Save STP</button>
+                        <button type="button" class="primary-button" data-mark-gps>Mark GPS Point</button>
+                    </div>
+                    <input type="file" data-field="cameraPhoto" accept="image/*" capture="environment" class="camera-photo-input" aria-label="Take photo with camera">
+                </div>
+
+                <label class="field">
+                    <span>Add Existing Photos</span>
+                    <input type="file" data-field="photos" accept="image/*" multiple>
+                </label>
+
+                <label class="field">
+                    <span>Photo Naming Rule</span>
+                    <input type="text" data-field="photoRule" readonly>
+                </label>
+
+                <div class="field field-notes">
+                    <span>Photo Names (editable)</span>
+                    <p class="photo-help">Photos are auto-named from the rule. Edit names below or remove any incorrect entry. Use Open to preview the stored STP photo; if storage is missing, you can choose a matching file from your device.</p>
+                    <ul class="photo-list" data-photo-list></ul>
+                    <p class="photo-warning" data-photo-warning></p>
+                </div>
+
+                <label class="field field-notes">
+                    <span>Notes</span>
+                    <textarea data-field="notes" rows="3" placeholder="Artifacts, roots, mottling, disturbance, moisture, or other observations"></textarea>
+                </label>
+            </div>
+        </article>
+    </template>
+
+    <datalist id="munsellOptions"></datalist>
+    <datalist id="textureOptions"></datalist>
+    <datalist id="horizonOptions"></datalist>
+
+    <div id="mapViewerModal" class="map-viewer" hidden aria-hidden="true">
+        <div class="map-viewer-dialog" role="dialog" aria-modal="true" aria-label="Project map reference">
+            <div class="map-viewer-head">
+                <p id="mapViewerTitle" class="map-viewer-title">Project Map Reference</p>
+                <button type="button" id="closeMapViewerButton" class="ghost-button">Close</button>
+            </div>
+            <img id="mapViewerImage" class="map-viewer-img" alt="Project map reference">
+        </div>
+    </div>
+
+    <input type="file" id="savedPhotoOpenInput" accept="image/*" class="camera-photo-input" aria-hidden="true" tabindex="-1">
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

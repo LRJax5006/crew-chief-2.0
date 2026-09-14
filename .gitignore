@@ -1,0 +1,29 @@
+.env
+*.pem
+*client_secret*.json
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and local test data
+*.log
+TEST Files/
+*.csv
+*.json
+*.xlsx
+*.xltx
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qmd
+*.zip
+
+# Dependencies and generated output
+node_modules/
+dist/
+build/

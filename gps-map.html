@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#b21e1e">
+    <title>GPS Points Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f2ecdf;
+            color: #1f2b26;
+            font-family: Trebuchet MS, Gill Sans, sans-serif;
+            display: grid;
+            grid-template-rows: auto 1fr;
+        }
+
+        .top {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #b21e1e;
+            color: #fff;
+            flex-wrap: wrap;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .top-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        .button-link {
+            border: none;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            background: #f4b63e;
+            color: #352005;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button-link.ghost {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+        }
+
+        .layout {
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+            grid-template-rows: minmax(320px, 62vh) auto auto auto;
+        }
+
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            background: #ddd;
+        }
+
+        .map-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .map-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #1f2b26;
+        }
+
+        .map-toggle input {
+            accent-color: #b21e1e;
+        }
+
+        .map-toggle-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.88rem;
+            color: #2b3a34;
+        }
+
+        .map-toggle-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .map-toggle-group input[type="radio"] {
+            cursor: pointer;
+            accent-color: #b21e1e;
+        }
+
+        .map-legend {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: #2b3a34;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            border: 2px solid transparent;
+            display: inline-block;
+        }
+
+        .status {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #2e3a35;
+        }
+
+        .status.error {
+            color: #8b1f1f;
+        }
+
+        .list-title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .point-list {
+            margin: 0;
+            padding: 0 0 0 20px;
+            display: grid;
+            gap: 6px;
+            max-height: 26vh;
+            overflow: auto;
+        }
+
+        .point-list li,
+        .point-list-item {
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 3px 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .point-list li:hover,
+        .point-list-item:hover {
+            background: rgba(178, 30, 30, 0.09);
+            color: #8b1f1f;
+        }
+
+        .stp-detail-section {
+            border-top: 1px solid rgba(31, 43, 38, 0.2);
+            padding-top: 10px;
+        }
+
+        .stp-detail-panel {
+            display: grid;
+            gap: 8px;
+        }
+
+        .stp-detail-head {
+            margin: 0 0 4px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1f2b26;
+        }
+
+        .stp-stratum-row {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(31, 43, 38, 0.18);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 16px;
+        }
+
+        .stp-stratum-field {
+            display: flex;
+            flex-direction: column;
+            min-width: 80px;
+        }
+
+        .stp-stratum-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: #4a5550;
+        }
+
+        .stp-stratum-value {
+            font-size: 0.9rem;
+            color: #1f2b26;
+        }
+
+        .stp-stratum-notes {
+            grid-column: 1 / -1;
+            font-size: 0.85rem;
+            color: #3a4a45;
+            font-style: italic;
+        }
+
+        .stp-detail-empty {
+            color: #4a5550;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        @media (max-width: 720px) {
+            .layout {
+                grid-template-rows: minmax(260px, 56vh) auto auto auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="top">
+        <p id="gpsMapTitle" class="title">GPS Points Map</p>
+        <div class="top-actions">
+            <a href="./index.html" class="button-link ghost">Back to App</a>
+            <button type="button" id="closeMapButton">Close</button>
+        </div>
+    </header>
+
+    <main class="layout">
+        <div id="gpsMapCanvas" class="map-canvas" role="img" aria-label="Map with plotted GPS points"></div>
+
+        <div class="map-controls">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+                <label class="map-toggle">
+                    <input type="checkbox" id="connectPointsToggle">
+                    Connect points in save order
+                </label>
+                <fieldset class="map-toggle-group" style="border: none; padding: 0; margin: 0;">
+                    <legend style="display: inline; font-size: 0.88rem; font-weight: 700; color: #2b3a34; margin-right: 8px;">Map:</legend>
+                    <label><input type="radio" name="mapLayer" value="satellite" id="mapLayerSatellite"> Satellite</label>
+                    <label><input type="radio" name="mapLayer" value="topo" id="mapLayerTopo" checked> Topo</label>
+                </fieldset>
+            </div>
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                                <label style="margin-right:6px;">Setback (ft): <input type="number" id="setbackInput" value="10" min="0" step="1" style="width:60px;"></label>
+                                <label style="margin-right:6px;">Grid Spacing (ft): <input type="number" id="spacingInput" value="50" min="1" step="1" style="width:60px;"></label>
+                                <span style="font-size:0.92em;color:#4a5550;">(Click 3 points to generate grid)</span>
+                                <button type="button" id="clearGridButton" class="ghost-button" style="margin-left:8px;">Clear All Grid Points</button>
+                                <button type="button" id="clearAllStpButton" class="ghost-button" style="margin-left:8px;">Clear GPS Points</button>
+                                <style>
+                                    /* Hide unused controls on map page */
+                                    #startCornerInput, #endCornerInput, #generateGridButton, label[for="startCornerInput"], label[for="endCornerInput"] {
+                                        display: none !important;
+                                    }
+                                </style>
+            </div>
+            <div id="gpsTypeLegend" class="map-legend" aria-label="Point type legend"></div>
+        </div>
+
+        <p id="gpsMapStatus" class="status">Loading map...</p>
+
+        <section>
+            <h2 class="list-title">Plotted Points</h2>
+            <ol id="gpsPointList" class="point-list"></ol>
+        </section>
+
+        <section id="stpDetailSection" class="stp-detail-section" hidden>
+            <h2 class="list-title">STP Details</h2>
+            <div id="stpDetailPanel" class="stp-detail-panel"></div>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./gps-map.js"></script>
+</body>
+</html>
