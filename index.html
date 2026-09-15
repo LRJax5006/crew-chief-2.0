@@ -14,13 +14,13 @@
     <link rel="shortcut icon" href="icons/icon-192.png?v=20260319" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260319">
     <link rel="stylesheet" href="app.css">
-    <!-- Google Identity Services script for Google Sign-In -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Google Drive API client for Drive integration -->
-    <script src="https://apis.google.com/js/api.js"></script>
+    <!-- Google Identity Services and Drive API are disabled until a production OAuth client ID is configured -->
+    <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
+    <!-- <script src="https://apis.google.com/js/api.js"></script> -->
 </head>
 <body>
-    <div id="loginBar" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 8px;">
+    <!-- Sign-in is hidden until a production Google OAuth client ID is configured -->
+    <div id="loginBar" style="display: none; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 8px;" hidden>
         <button id="loginUiButton" class="ghost-button">Sign in</button>
         <span id="userUiLabel" class="user-label" style="color: #fff; font-size: 1em;">Not signed in</span>
     </div>
@@ -90,7 +90,8 @@
                         STP labels remain editable, even when a label suggestion is offered.
                     </p>
                 </div>
-                <div class="sync-status-card" id="syncStatusCard">
+                <!-- Cloud Sync is hidden until a production Google OAuth client ID is configured -->
+                <div class="sync-status-card" id="syncStatusCard" hidden>
                     <p class="sync-status-label">Cloud Sync</p>
                     <div id="syncStatusBar" class="sync-status-bar" aria-live="polite">
                         <span id="syncStatusText">Not connected</span>
