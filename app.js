@@ -829,11 +829,17 @@ function registerServiceWorker() {
         return;
     }
 
-    window.addEventListener("load", function () {
+    function doRegister() {
         navigator.serviceWorker.register("./service-worker.js").catch(function (error) {
             console.warn("Could not register service worker.", error);
         });
-    });
+    }
+
+    if (document.readyState === "complete") {
+        doRegister();
+    } else {
+        window.addEventListener("load", doRegister);
+    }
 }
 
 function setupPwaInstallPrompt() {
