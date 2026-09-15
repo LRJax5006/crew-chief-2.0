@@ -924,6 +924,7 @@ function cacheElements() {
     elements.resetCurrentButton = document.getElementById("resetCurrentButton");
     elements.exportXlsxButton = document.getElementById("exportXlsxButton");
     elements.exportCsvButton = document.getElementById("exportCsvButton");
+    elements.exportKmlButton = document.getElementById("exportKmlButton");
     elements.viewGpsMapButton = document.getElementById("viewGpsMapButton");
     elements.importCsvButton = document.getElementById("importCsvButton");
     elements.importCsvInput = document.getElementById("importCsvInput");
@@ -1007,6 +1008,7 @@ function cacheElements() {
     elements.wrapUpSummaryText = document.getElementById("wrapUpSummaryText");
     elements.wrapUpXlsxButton = document.getElementById("wrapUpXlsxButton");
     elements.wrapUpCsvButton = document.getElementById("wrapUpCsvButton");
+    elements.wrapUpKmlButton = document.getElementById("wrapUpKmlButton");
     elements.wrapUpJsonButton = document.getElementById("wrapUpJsonButton");
     elements.flowNavigator = document.getElementById("flowNavigator");
     elements.flowStepSelect = document.getElementById("flowStepSelect");
@@ -1116,6 +1118,9 @@ function bindEvents() {
 
     elements.exportXlsxButton.addEventListener("click", downloadExcelReadyXlsx);
     elements.exportCsvButton.addEventListener("click", downloadExcelReadyCsv);
+    if (elements.exportKmlButton) {
+        elements.exportKmlButton.addEventListener("click", downloadKml);
+    }
     if (elements.viewGpsMapButton) {
         elements.viewGpsMapButton.addEventListener("click", openGpsPointsMap);
     }
@@ -1139,6 +1144,9 @@ function bindEvents() {
     }
     if (elements.wrapUpCsvButton) {
         elements.wrapUpCsvButton.addEventListener("click", downloadExcelReadyCsv);
+    }
+    if (elements.wrapUpKmlButton) {
+        elements.wrapUpKmlButton.addEventListener("click", downloadKml);
     }
     if (elements.wrapUpJsonButton) {
         elements.wrapUpJsonButton.addEventListener("click", downloadSessionData);
@@ -6715,6 +6723,98 @@ function buildFilenameBase() {
         .replace(/^-+|-+$/g, "");
 
     return base || "crew-chief-export";
+}
+
+function escapeKmlText(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+function buildKmlPlacemark(name, latitude, longitude, description) {
+    return [
+        "<Placemark>",
+        "<name>" + escapeKmlText(name) + "</name>",
+        "<description><![CDATA[" + String(description || "").replace(/]]>/g, "]]><![CDATA[>") + "]]></description>",
+        "<Point><coordinates>" + longitude + "," + latitude + ",0</coordinates></Point>",
+        "</Placemark>"
+    ].join("");
+}
+
+function downloadKml() {
+    const placemarks = [];
+    const stpPlacemarks = [];
+    const gpsPlacemarks = [];
+
+    state.stps.forEach(function (stp) {
+        const latitude = parseGpsCoordinate(stp && stp.gpsLatitude, -90, 90);
+        const longitude = parseGpsCoordinate(stp && stp.gpsLongitude, -180, 180);
+
+        if (latitude == null || longitude == null) {
+            return;
+        }
+
+        const label = getExportStpLabel(stp) || stp.stpLabel || "STP";
+        const description = [
+            "Site: " + escapeKmlText(stp.siteName),
+            "Location: " + escapeKmlText(stp.siteLocation),
+            "Entry Type: " + escapeKmlText(stp.entryType || "base"),
+            "Strata: " + escapeKmlText(stp.strata ? stp.strata.length : 0)
+        ].join("&#10;");
+
+        stpPlacemarks.push(buildKmlPlacemark(label, latitude, longitude, description));
+    });
+
+    if (gpsRegistry && gpsRegistry.points instanceof Map) {
+        gpsRegistry.points.forEach(function (point) {
+            const latitude = parseGpsCoordinate(point && point.lat, -90, 90);
+            const longitude = parseGpsCoordinate(point && point.lon, -180, 180);
+
+            if (latitude == null || longitude == null) {
+                return;
+            }
+
+            const description = [
+                "Type: " + escapeKmlText(point.type || "GPS point"),
+                "Source: " + escapeKmlText(point.source),
+                "Status: " + escapeKmlText(point.status),
+                "Point ID: " + escapeKmlText(point.id)
+            ].join("&#10;");
+
+            gpsPlacemarks.push(buildKmlPlacemark(point.label || point.id || "GPS Point", latitude, longitude, description));
+        });
+    }
+
+    if (stpPlacemarks.length === 0 && gpsPlacemarks.length === 0) {
+        alert("Save or mark at least one GPS point before downloading KML.");
+        return;
+    }
+
+    placemarks.push("<Folder><name>STPs</name>" + stpPlacemarks.join("") + "</Folder>");
+    placemarks.push("<Folder><name>GPS Points</name>" + gpsPlacemarks.join("") + "</Folder>");
+
+    const kmlText = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<kml xmlns="http://www.opengis.net/kml/2.2">',
+        "<Document>",
+        "<name>" + escapeKmlText(state.siteName || "Crew Chief GPS Export") + "</name>",
+        placemarks.join(""),
+        "</Document>",
+        "</kml>"
+    ].join("");
+
+    const fileBlob = new Blob([kmlText], { type: "application/vnd.google-earth.kml+xml;charset=utf-8" });
+    const downloadUrl = URL.createObjectURL(fileBlob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = (buildFilenameBase() || "crew-chief-export") + ".kml";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
 }
 
 function downloadExcelReadyXlsx() {
