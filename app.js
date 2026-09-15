@@ -3922,6 +3922,26 @@ function handleStrataListClick(event) {
         return;
     }
 
+    const savePhotoButton = event.target.closest("[data-photo-save-phone]");
+
+    if (savePhotoButton) {
+        const card = savePhotoButton.closest(".stratum-card");
+
+        if (!card) {
+            return;
+        }
+
+        const photoIndex = Number(savePhotoButton.getAttribute("data-photo-save-phone"));
+        const entries = getCardPhotoEntries(card);
+        const photoEntry = entries[photoIndex];
+
+        if (photoEntry) {
+            saveDraftPhotoToPhone(photoEntry, buildCurrentDraftPhotoContextLabel(card));
+        }
+
+        return;
+    }
+
     if (event.target.closest("[data-add-stratum]")) {
         addStratumFromBarOrAction();
         return;
@@ -4138,7 +4158,6 @@ function handleStrataListChange(event) {
     const existingEntries = getCardPhotoEntries(card);
     const stratumLabelField = card.querySelector('[data-field="stratumLabel"]');
     const prefix = card.dataset.photoPrefix || buildPhotoPrefix(stratumLabelField ? stratumLabelField.value : "1");
-    const shouldStoreBlobs = shouldPersistStratumPhotoBlobs();
     const photoEntries = selectedFiles.map(function (file, index) {
         const nextEntry = {
             pendingId: "",
@@ -4149,11 +4168,9 @@ function handleStrataListChange(event) {
             originalName: file.name || ""
         };
 
-        if (shouldStoreBlobs) {
-            const draftId = createPhotoDraftId();
-            draftPhotoBlobs.set(draftId, file);
-            nextEntry.pendingId = draftId;
-        }
+        const draftId = createPhotoDraftId();
+        draftPhotoBlobs.set(draftId, file);
+        nextEntry.pendingId = draftId;
 
         return nextEntry;
     });
@@ -4232,6 +4249,45 @@ function requestSavedPhotoOpen(photoName, photoId, pendingId, photoContext) {
         pendingId: normalizedPendingId,
         photoContext: normalizedPhotoContext
     });
+}
+
+async function saveDraftPhotoToPhone(photoEntry, photoContext) {
+    const draftId = normalizeTextValue(photoEntry && photoEntry.pendingId);
+    const file = draftId ? draftPhotoBlobs.get(draftId) : null;
+
+    if (!file) {
+        alert("The captured image is no longer available. Capture it again, then choose Save to Phone.");
+        return;
+    }
+
+    const fileName = normalizeTextValue(photoEntry.name) || file.name || "crew-chief-photo.jpg";
+    const shareFile = new File([file], fileName, { type: file.type || "image/jpeg" });
+
+    try {
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [shareFile] }))) {
+            await navigator.share({
+                files: [shareFile],
+                title: fileName,
+                text: photoContext ? "Crew Chief photo - " + photoContext : "Crew Chief photo"
+            });
+            setReferencePhotoMessage("Use Save Image or Add to Photos in the phone share sheet to store this photo.", false);
+            return;
+        }
+    } catch (error) {
+        if (error && error.name === "AbortError") {
+            return;
+        }
+    }
+
+    const downloadUrl = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+    setReferencePhotoMessage("Photo downloaded to the phone. Move it to Photos/Gallery if your phone saves downloads separately.", false);
 }
 
 function handleSavedPhotoOpenSelection() {
@@ -5660,6 +5716,13 @@ function renderPhotoListForCard(card) {
             openButton.setAttribute("data-photo-open", String(index));
             openButton.textContent = "Open";
 
+            const savePhoneButton = document.createElement("button");
+            savePhoneButton.type = "button";
+            savePhoneButton.className = "photo-open-button";
+            savePhoneButton.setAttribute("data-photo-save-phone", String(index));
+            savePhoneButton.textContent = "Save to Phone";
+            savePhoneButton.hidden = !getCardPhotoEntries(card)[index].pendingId;
+
             const removeButton = document.createElement("button");
             removeButton.type = "button";
             removeButton.className = "photo-remove-button";
@@ -5667,6 +5730,7 @@ function renderPhotoListForCard(card) {
             removeButton.textContent = "Delete";
 
             actions.appendChild(openButton);
+            actions.appendChild(savePhoneButton);
             actions.appendChild(removeButton);
             item.appendChild(nameInput);
             item.appendChild(actions);
