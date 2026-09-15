@@ -245,7 +245,7 @@
                             <p id="referencePhotoSavedHint" class="entry-photo-saved-hint" hidden>Saved with session and project.</p>
                             <details id="referencePhotoLibrary" class="entry-photo-library">
                                 <summary id="referencePhotoLibrarySummary">STP Photos In App</summary>
-                                <p class="entry-photo-library-note">Draft photos stay in app memory until Save STP. Saved STP photos are kept in app photo storage and can be previewed here.</p>
+                                <p class="entry-photo-library-note">Crew Chief saves photo tags with each STP. Choose the original image from your phone's Photos or Files storage when you need to preview it.</p>
                                 <div id="referencePhotoLibraryList" class="entry-photo-library-list"></div>
                             </details>
                         </div>
@@ -371,7 +371,7 @@
                             <h3>Import</h3>
                             <div class="saved-tool-grid">
                                 <button type="button" id="importCsvButton" class="ghost-button">CSV Backup</button>
-                                <button type="button" id="importJsonButton" class="ghost-button">JSON Backup + Photos</button>
+                                <button type="button" id="importJsonButton" class="ghost-button">JSON Backup + Photo Tags</button>
                             </div>
                         </div>
                         <div class="saved-tool-group">
@@ -380,7 +380,7 @@
                                 <button type="button" id="exportXlsxButton" class="secondary-button">Excel-ready XLSX</button>
                                 <button type="button" id="exportCsvButton" class="ghost-button">Final CSV</button>
                                 <button type="button" id="exportKmlButton" class="ghost-button">GPS Points KML</button>
-                                <button type="button" id="exportJsonButton" class="ghost-button">JSON Backup + Photos</button>
+                                <button type="button" id="exportJsonButton" class="ghost-button">JSON Backup + Photo Tags</button>
                             </div>
                         </div>
                     </div>
@@ -477,7 +477,7 @@
                     <button type="button" id="wrapUpXlsxButton" class="primary-button">&#8595;&nbsp;Download Excel XLSX</button>
                     <button type="button" id="wrapUpCsvButton" class="secondary-button">&#8595;&nbsp;Final CSV Backup</button>
                     <button type="button" id="wrapUpKmlButton" class="secondary-button">&#8595;&nbsp;GPS Points KML</button>
-                    <button type="button" id="wrapUpJsonButton" class="ghost-button">&#8595;&nbsp;JSON Backup + Photos</button>
+                    <button type="button" id="wrapUpJsonButton" class="ghost-button">&#8595;&nbsp;JSON Backup + Photo Tags</button>
                 </div>
             </section>
         </main>
@@ -550,7 +550,7 @@
                 </div>
 
                 <label class="field">
-                    <span>Add Existing Photos</span>
+                    <span>Tag Existing Photos</span>
                     <input type="file" data-field="photos" accept="image/*" multiple>
                 </label>
 
@@ -561,7 +561,7 @@
 
                 <div class="field field-notes">
                     <span>Photo Names (editable)</span>
-                    <p class="photo-help">Photos are auto-named from the rule. Edit names below or remove any incorrect entry. Use Open to preview the stored STP photo; if storage is missing, you can choose a matching file from your device.</p>
+                    <p class="photo-help">Photos stay in your phone's Photos or Files storage. Crew Chief saves the photo tag and STP link; choose the matching file when you need to preview it.</p>
                     <ul class="photo-list" data-photo-list></ul>
                     <p class="photo-warning" data-photo-warning></p>
                 </div>

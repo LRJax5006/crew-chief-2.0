@@ -266,7 +266,7 @@ const defaultReferencePhotoSrc = "IMG_3376.JPG";
 const defaultMapViewerTitle = "Project Map Reference";
 const gpsCoordinateDecimalPlaces = 6;
 const gpsCoordinateMatchTolerance = 0.000005;
-const persistStratumPhotoBlobsInBrowser = true;
+const persistStratumPhotoBlobsInBrowser = false;
 const autoJsonBackupOnSaveStp = true;
 const importQualityProfiles = {
     balanced: {
@@ -5429,7 +5429,13 @@ async function buildSessionBackupPayload() {
     const missingPhotoIds = [];
     const photoMetadata = buildPhotoMetadataMapFromStps(sessionSnapshot.stps);
 
-    for (const [photoId, metadata] of photoMetadata.entries()) {
+    if (!shouldPersistStratumPhotoBlobs()) {
+        photoMetadata.forEach(function (_metadata, photoId) {
+            missingPhotoIds.push(photoId);
+        });
+    }
+
+    for (const [photoId, metadata] of shouldPersistStratumPhotoBlobs() ? photoMetadata.entries() : []) {
         try {
             const blobValue = await readPhotoBlobFromDatabase(photoId);
 
@@ -7023,14 +7029,14 @@ async function updateBackupDestinationStatus(options) {
             + designatedJsonBackupFileName
             + "."
             + summarySuffix
-            + " Use Import JSON Backup + Photos to load this file directly.",
+            + " Use Import JSON Backup + Photo Tags to load this file directly.",
         false
     );
 }
 
 async function handleSetBackupFileClick() {
     if (!supportsDesignatedBackupFile()) {
-        alert("This browser does not support choosing a persistent app backup file. Use Download JSON Backup + Photos.");
+        alert("This browser does not support choosing a persistent app backup file. Use Download JSON Backup + Photo Tags.");
         return;
     }
 
@@ -7208,13 +7214,13 @@ async function saveAutoJsonBackupAfterStpSave() {
 
         if (backupResult.unavailable) {
             setReferencePhotoMessage(
-                "Auto JSON backup requires browser file-save support. Use Download JSON Backup + Photos manually.",
+                "Auto JSON backup requires browser file-save support. Use Download JSON Backup + Photo Tags manually.",
                 true
             );
         }
     } catch (error) {
         console.warn("Could not complete auto JSON backup.", error);
-        setReferencePhotoMessage("Auto JSON backup failed. Use Download JSON Backup + Photos.", true);
+        setReferencePhotoMessage("Auto JSON backup failed. Use Download JSON Backup + Photo Tags.", true);
     }
 }
 
@@ -7253,20 +7259,24 @@ async function downloadSessionData() {
             : "as a download (" + (backupResult.fileName || "session backup") + ")";
 
         setReferencePhotoMessage(
-            missingPhotoCount > 0
-                ? "JSON backup saved "
-                    + destinationText
-                    + ". Bundled "
-                    + String(bundledPhotoCount)
-                    + " saved STP photo(s); "
-                    + String(missingPhotoCount)
-                    + " photo(s) were not available in app storage and were not included."
+            shouldPersistStratumPhotoBlobs()
+                ? (missingPhotoCount > 0
+                    ? "JSON backup saved "
+                        + destinationText
+                        + ". Bundled "
+                        + String(bundledPhotoCount)
+                        + " saved STP photo(s); "
+                        + String(missingPhotoCount)
+                        + " photo(s) were not available in app storage and were not included."
+                    : "JSON backup saved "
+                        + destinationText
+                        + ". Bundled "
+                        + String(bundledPhotoCount)
+                        + " saved STP photo(s).")
                 : "JSON backup saved "
                     + destinationText
-                    + ". Bundled "
-                    + String(bundledPhotoCount)
-                    + " saved STP photo(s).",
-            missingPhotoCount > 0
+                    + ". Photo tags were saved; the original image files remain in your phone's Photos or Files storage.",
+            false
         );
     } catch (error) {
         console.warn("Could not download JSON backup.", error);
@@ -9015,7 +9025,7 @@ async function openPhotoInReferencePanel(options) {
 
     if (normalizedPendingId) {
         blobValue = draftPhotoBlobs.get(normalizedPendingId) || null;
-        previewHint = "Current draft photo in app memory. Save STP to keep it in app photo storage.";
+        previewHint = "Current draft photo in app memory. Save STP to keep its tag with the session.";
         previewKind = "draft";
         previewEntryKey = "draft:" + normalizedPendingId;
     } else if (normalizedPhotoId) {
@@ -9026,15 +9036,24 @@ async function openPhotoInReferencePanel(options) {
             blobValue = null;
         }
 
-        previewHint = "Saved STP photo stored in app photo storage.";
+        previewHint = "Choose the matching original image from your phone's Photos or Files storage.";
         previewKind = "saved";
         previewEntryKey = "saved:" + normalizedPhotoId;
     }
 
     if (!blobValue) {
+        if (normalizedPhotoId) {
+            requestSavedPhotoOpenFromPicker(normalizedPhotoName, normalizedPhotoContext);
+            setReferencePhotoMessage(
+                "Choose " + normalizedPhotoName + " from your phone's Photos or Files storage to preview it.",
+                false
+            );
+            return false;
+        }
+
         setReferencePhotoMessage(
             normalizedPhotoId
-                ? "This STP lists the photo, but the file is not currently available in app photo storage."
+                ? "This STP lists the photo tag. Choose the matching original image from your phone's Photos or Files storage."
                 : "This draft photo is no longer available in app memory. Capture it again if needed.",
             true
         );
